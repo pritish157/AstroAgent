@@ -68,33 +68,44 @@ A hard cap of **4 LLM round-trips** per query prevents infinite tool-call loops.
 - Gemini API key from [Google AI Studio](https://aistudio.google.com/)
 - (Optional) GeoNames username from [geonames.org](https://www.geonames.org/login) for timezone resolution
 
-### 1. Backend Setup
+### Quick Start
+
+```bash
+# Install all dependencies (backend + frontend)
+npm run install-all
+
+# Copy and configure environment variables
+cp .env.example backend/.env
+# Edit backend/.env with your MongoDB URI, Gemini API key, etc.
+
+# Start both servers
+npm run dev
+```
+
+Open `http://localhost:3000` in your browser.
+
+### Manual Setup
+
+#### 1. Backend
 
 ```bash
 cd backend
 npm install
+cp ../.env.example .env    # Then edit .env with your credentials
+npm run dev                # Development mode with nodemon
 ```
 
-Create/edit `backend/.env` with your credentials:
+Required environment variables (see `.env.example`):
 
-```env
-PORT=5000
-MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/astroagent?retryWrites=true&w=majority
-GEMINI_API_KEY=your-gemini-api-key-here
-GEMINI_MODEL=gemini-3.1-flash-lite
-GEONAMES_USERNAME=your_geonames_username    # Optional, defaults to astroagent_demo
-```
+| Variable | Required | Description |
+|---|---|---|
+| `MONGODB_URI` | ✅ | MongoDB Atlas connection string |
+| `GEMINI_API_KEY` | ✅ | Google Gemini API key |
+| `GEMINI_MODEL` | ❌ | Model name (default: `gemini-3.1-flash-lite`) |
+| `GEONAMES_USERNAME` | ❌ | GeoNames API username (default: `astroagent_demo`) |
+| `PORT` | ❌ | Backend port (default: `5000`) |
 
-Start the server:
-
-```bash
-npm run start        # Production mode
-npm run dev          # Development mode with nodemon
-```
-
-> The backend API listens on port `5000`; the frontend Vite dev server runs on port `3000` with a proxy to the backend.
-
-### 2. Frontend Setup
+#### 2. Frontend
 
 ```bash
 cd frontend
@@ -102,7 +113,7 @@ npm install
 npm run dev
 ```
 
-Open your browser to `http://localhost:3000` to interact with AstroAgent.
+> The backend API listens on port `5000`; the frontend Vite dev server runs on port `3000` with a proxy to the backend.
 
 ---
 
@@ -214,13 +225,13 @@ The `compute_birth_chart` tool validates all inputs before performing calculatio
 Aradhana-Astroagent/
 ├── README.md                    # This file
 ├── EVALUATION.md                # Detailed evaluation methodology & results
-├── .gitignore                   # Excludes .env, node_modules, dist
+├── .env.example                 # Template for backend/.env
+├── .gitignore                   # Excludes .env, node_modules, dist, eval logs
+├── package.json                 # Root scripts (install-all, dev, eval)
 ├── backend/
-│   ├── .env                     # Environment variables (gitignored)
+│   ├── .env                     # Your credentials (gitignored — copy from .env.example)
 │   ├── eval.js                  # Evaluation harness (npm run eval)
 │   ├── golden_set.jsonl         # 30 versioned test cases
-│   ├── eval_results_log.txt     # Last eval run detailed results
-│   ├── eval_history.log         # Append-only regression history
 │   ├── package.json
 │   └── src/
 │       ├── agent.js             # LangGraph StateGraph: router → agent → tools
@@ -244,6 +255,8 @@ Aradhana-Astroagent/
 └── frontend/
     ├── index.html               # Entry HTML with Google Fonts
     ├── vite.config.js           # Vite config with API proxy
+    ├── tailwind.config.js       # Tailwind configuration
+    ├── postcss.config.js        # PostCSS configuration
     └── src/
         ├── App.jsx              # Full React app (chat + natal chart SVG + streaming)
         ├── main.jsx             # React DOM entry point

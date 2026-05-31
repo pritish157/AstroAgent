@@ -10,4 +10,9 @@ backend/dist/
 backend/.env
 frontend/.env
 
+# Eval generated output
+backend/eval_results_log.txt
+backend/eval_history.log
+
 npm-debug.log*
+*.log
