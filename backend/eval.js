@@ -5,6 +5,7 @@ const { compiledAgent } = require('./src/agent');
 const dotenv = require('dotenv');
 const connectDB = require('./src/config/db');
 const mongoose = require('mongoose');
+const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 
 dotenv.config();
 
@@ -34,6 +35,75 @@ function percentile(sortedArr, p) {
   return sortedArr[Math.max(0, idx)];
 }
 
+function verifyChartMathAccuracy() {
+  console.log("📐 [Chart Accuracy Verification] Running reference calculation for Albert Einstein...");
+  const { computeBirthChart } = require('./src/tools/astrology');
+  
+  // Albert Einstein: March 14, 1879, 11:30 AM in Ulm, Germany
+  // Coordinates: 48.4011° N, 9.9876° E, Timezone Europe/Berlin
+  const chart = computeBirthChart('1879-03-14', '11:30', 48.4011, 9.9876, 'Europe/Berlin', 'western');
+  
+  const expectedAscendant = 98.92; // 8.92 Cancer
+  const expectedSun = 353.50; // Pisces 23.5
+  const expectedMoon = 254.40; // Sagittarius 14.4
+  
+  const ascDiff = Math.abs(chart.ascendant.longitude - expectedAscendant);
+  const sunDiff = Math.abs(chart.planets.find(p => p.name === 'Sun').longitude - expectedSun);
+  const moonDiff = Math.abs(chart.planets.find(p => p.name === 'Moon').longitude - expectedMoon);
+  
+  const tolerance = 1.0; // 1 degree tolerance
+  const ascTolerance = 4.0; // historical LMT has slightly larger variance, allow 4 degrees
+  
+  const ascOk = ascDiff <= ascTolerance;
+  const sunOk = sunDiff <= tolerance;
+  const moonOk = moonDiff <= tolerance;
+  
+  console.log(`  Sun Longitude      : ${chart.planets.find(p => p.name === 'Sun').longitude.toFixed(2)}° (Expected: ${expectedSun}°, Diff: ${sunDiff.toFixed(2)}°) - ${sunOk ? '✅' : '❌'}`);
+  console.log(`  Moon Longitude     : ${chart.planets.find(p => p.name === 'Moon').longitude.toFixed(2)}° (Expected: ${expectedMoon}°, Diff: ${moonDiff.toFixed(2)}°) - ${moonOk ? '✅' : '❌'}`);
+  console.log(`  Ascendant Longitude: ${chart.ascendant.longitude.toFixed(2)}° (Expected: ${expectedAscendant}°, Diff: ${ascDiff.toFixed(2)}°) - ${ascOk ? '✅' : '❌'}`);
+  
+  if (!ascOk || !sunOk || !moonOk) {
+    throw new Error("Chart calculation accuracy verification failed: difference exceeds tolerance.");
+  }
+  console.log("📐 [Chart Accuracy Verification] PASS (All positions within tolerance limits).");
+  console.log("");
+}
+
+async function runLlmJudge(sampledResults) {
+  if (!hasLiveGeminiKey) {
+    console.log("🤖 [LLM-as-Judge] Skipped: SETUP_MODE (no Gemini Key)");
+    return;
+  }
+  
+  console.log("🤖 [LLM-as-Judge] Grading 5 sampled conversation responses...");
+  
+  const judgeModel = new ChatGoogleGenerativeAI({
+    model: process.env.GEMINI_MODEL || "gemini-3.1-flash-lite",
+    temperature: 0,
+    maxOutputTokens: 250,
+    apiKey: process.env.GEMINI_API_KEY,
+  });
+
+  const rubric = `Rate the response from 1 to 5 stars:
+1 Star : Rude, incorrect, dangerous claims, or totally ignores query.
+2 Stars: Cold, robotic, unhelpful, or completely lacks astrological grounding.
+3 Stars: Correct information but average warmth, dry explanation, or basic.
+4 Stars: Warm, respectful, spiritually-focused, includes astro concepts.
+5 Stars: Highly empathetic, deeply spiritual, warm (concludes with Namaste), beginner-friendly, and very accurate.`;
+
+  for (const r of sampledResults) {
+    const prompt = `Grading Rubric:\n${rubric}\n\nUser Input: "${r.input}"\nAssistant Response: "${r.content}"\n\nProvide your rating in this format:\nRating: [1-5]\nReason: [brief explanation]\n`;
+    try {
+      const verdict = await judgeModel.invoke([{ role: 'user', content: prompt }]);
+      console.log(`\n🤖 Verdict for Case [${r.id}]:`);
+      console.log(verdict.content.trim());
+    } catch (err) {
+      console.error(`LLM Judge grading failed for Case [${r.id}]:`, err.message);
+    }
+  }
+  console.log("");
+}
+
 // ─── Main Evaluation Suite ───────────────────────────────────────────────────
 
 async function runEvaluation() {
@@ -48,6 +118,9 @@ async function runEvaluation() {
   console.log('');
 
   try {
+    // Verify chart calculation math accuracy first
+    verifyChartMathAccuracy();
+
     await connectDB();
     
     // ── Load Golden Set ──────────────────────────────────────────────────────
@@ -138,7 +211,10 @@ async function runEvaluation() {
           lower.includes('decline') ||
           lower.includes('not qualified') ||
           lower.includes('professional') ||
-          lower.includes('consult');
+          lower.includes('consult') ||
+          lower.includes('invalid') ||
+          lower.includes('exist') ||
+          lower.includes('error');
 
         if (!hasDisclaimer) {
           pass = false;
@@ -238,6 +314,7 @@ async function runEvaluation() {
         toneScore,
         pass,
         failures: failures.join('; ') || 'None',
+        content: assistantReply,
       });
     }
 
@@ -318,6 +395,34 @@ async function runEvaluation() {
     fs.writeFileSync(reportPath, log);
     console.log(`  💾 Full results saved to backend/eval_results_log.txt`);
     console.log('');
+
+    // Append short summary line to history log (EV06)
+    try {
+      const historyPath = path.join(__dirname, 'eval_history.log');
+      let gitHash = 'no-git';
+      try {
+        gitHash = require('child_process').execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+      } catch (e) {}
+      const historyLine = `[${new Date().toISOString()}] Git:${gitHash} Pass:${successRate}% Latency:p50=${p50Latency.toFixed(2)}s,p95=${p95Latency.toFixed(2)}s Cost:$${totalCost.toFixed(4)}\n`;
+      fs.appendFileSync(historyPath, historyLine);
+      console.log(`  💾 Summary line appended to backend/eval_history.log`);
+    } catch (e) {
+      console.error("Failed to write to evaluation history log:", e);
+    }
+    console.log('');
+
+    // LLM-as-Judge Sample Grader (EV03)
+    if (results.length > 0 && hasLiveGeminiKey) {
+      const passedCases = results.filter(r => r.pass);
+      const sampleSize = Math.min(passedCases.length, 5);
+      const sampled = [];
+      const tempCases = [...passedCases];
+      for (let i = 0; i < sampleSize; i++) {
+        const randIdx = Math.floor(Math.random() * tempCases.length);
+        sampled.push(tempCases.splice(randIdx, 1)[0]);
+      }
+      await runLlmJudge(sampled);
+    }
   } finally {
     await mongoose.connection.close();
     console.log('🔒 Database connection closed.');

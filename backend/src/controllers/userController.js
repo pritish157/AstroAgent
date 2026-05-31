@@ -27,7 +27,12 @@ const submitBirthDetails = async (req, res) => {
     const { latitude, longitude, timezone } = geoResult;
 
     // Step 2: Compute real natal chart using astronomy-engine
-    const chartResult = computeBirthChart(date, time, latitude, longitude, timezone, system || 'western');
+    let chartResult;
+    try {
+      chartResult = computeBirthChart(date, time, latitude, longitude, timezone, system || 'western');
+    } catch (chartErr) {
+      return res.status(400).json({ error: chartErr.message });
+    }
 
     // Step 3: Build the natal chart array (Ascendant + all planets)
     const natalChart = [chartResult.ascendant, ...chartResult.planets];

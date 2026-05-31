@@ -82,10 +82,18 @@ const streamChatResponse = async (req, res) => {
       ? allMessages.slice(-MAX_CONTEXT_MESSAGES)
       : allMessages;
 
+    let streamedAny = false;
     const graphStream = await compiledAgent.stream({
       messages: graphMessages,
       birthDetails,
       natalChart
+    }, {
+      configurable: {
+        onToken: (token) => {
+          streamedAny = true;
+          res.write(`event: token\ndata: ${JSON.stringify({ text: token })}\n\n`);
+        }
+      }
     });
 
     let finalResponseText = "";
@@ -95,13 +103,14 @@ const streamChatResponse = async (req, res) => {
       if (chunk.agent) {
         const lastMsg = chunk.agent.messages[chunk.agent.messages.length - 1];
         if (lastMsg) {
-          // If the message contains tool calls, do NOT stream it as text to the user!
           const hasToolCalls = (lastMsg.tool_calls && lastMsg.tool_calls.length > 0) || 
                                (lastMsg.additional_kwargs?.tool_calls && lastMsg.additional_kwargs.tool_calls.length > 0);
           
           if (!hasToolCalls && lastMsg.content) {
             finalResponseText = lastMsg.content;
-            res.write(`event: token\ndata: ${JSON.stringify({ text: lastMsg.content })}\n\n`);
+            if (!streamedAny) {
+              res.write(`event: token\ndata: ${JSON.stringify({ text: lastMsg.content })}\n\n`);
+            }
           }
         }
       }

@@ -81,11 +81,40 @@ function getZodiacInfo(longitude) {
 }
 
 function computeBirthChart(date, time, lat, lng, timezone, system = 'western') {
+  if (!date || !time) {
+    throw new Error("Birth date and birth time are required.");
+  }
+  
+  // Validate date format YYYY-MM-DD
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateRegex.test(date)) {
+    throw new Error("Invalid birth date format. Must be YYYY-MM-DD.");
+  }
+
+  // Validate time format HH:MM
+  const timeRegex = /^\d{2}:\d{2}$/;
+  if (!timeRegex.test(time)) {
+    throw new Error("Invalid birth time format. Must be HH:MM (24-hour format).");
+  }
+
+  // Validate actual date existence (e.g. Feb 30 is invalid)
+  const [year, month, day] = date.split('-').map(Number);
+  const parsedDate = new Date(year, month - 1, day);
+  if (parsedDate.getFullYear() !== year || parsedDate.getMonth() !== month - 1 || parsedDate.getDate() !== day) {
+    throw new Error(`The date ${date} does not exist in the calendar.`);
+  }
+
+  // Validate time components
+  const [hour, minute] = time.split(':').map(Number);
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+    throw new Error(`The time ${time} is invalid.`);
+  }
+
   const birthLocalString = `${date}T${time}:00`;
   let utcDate;
   try {
     const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: timezone,
+      timeZone: timezone || 'UTC',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -208,16 +237,28 @@ function getDailyTransits(natalPlanets, transitDate, system = 'western') {
     const transitHouse = Math.floor(relativeDegree / 30) + 1;
     
     const aspects = [];
+    const ASPECT_TYPES = [
+      { name: 'Conjunction', angle: 0 },
+      { name: 'Sextile', angle: 60 },
+      { name: 'Square', angle: 90 },
+      { name: 'Trine', angle: 120 },
+      { name: 'Opposition', angle: 180 }
+    ];
+
     for (const natal of natalPlanets) {
       if (natal.name === 'Ascendant') continue;
       const diff = Math.abs(normalizeAngle(adjustedLon - natal.longitude));
       const minDiff = Math.min(diff, 360 - diff);
-      if (minDiff <= 5.0) {
-        aspects.push({
-          aspect: 'Conjunction',
-          natalPlanet: natal.name,
-          orb: parseFloat(minDiff.toFixed(2))
-        });
+      
+      for (const aspectType of ASPECT_TYPES) {
+        const orb = Math.abs(minDiff - aspectType.angle);
+        if (orb <= 5.0) {
+          aspects.push({
+            aspect: aspectType.name,
+            natalPlanet: natal.name,
+            orb: parseFloat(orb.toFixed(2))
+          });
+        }
       }
     }
 

@@ -27,4 +27,4 @@
 {"input": "Tell me about myself.", "expected_intent": "vague_query", "expected_action": "ask_for_details"}
 {"input": "I was born in Tokyo on Jan 5, 2001 at 3pm. Calculate my chart and then tell me about my Moon placement.", "expected_intent": "multi_step", "expected_action": "call_compute_birth_chart"}
 {"input": " ", "expected_intent": "empty_input", "expected_action": "ask_for_clarification"}
-{"input": "What does my Moon in Capricorn mean for my emotional habits?", "expected_intent": "placement_analysis", "expected_action": "call_knowledge_lookup"}
+{"input": "Can you calculate my chart? Born February 30, 1995, at 14:30 in Mumbai.", "expected_intent": "chart_calculation", "expected_action": "refusal_and_safety_disclaimer"}

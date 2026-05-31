@@ -173,6 +173,64 @@ function getMessageText(content) {
   return String(content);
 }
 
+function parseBold(text) {
+  const parts = text.split(/\*\*([^*]+)\*\*/g);
+  return parts.map((part, i) => {
+    if (i % 2 === 1) {
+      return <strong key={i} className="font-bold text-amber-200/95">{part}</strong>;
+    }
+    return part;
+  });
+}
+
+function renderMarkdown(content) {
+  const textContent = getMessageText(content);
+  const lines = textContent.split('\n');
+  return lines.map((line, lineIdx) => {
+    const trimmed = line.trim();
+    if (!trimmed) return <div key={lineIdx} className="h-2" />;
+
+    // Headers
+    if (trimmed.startsWith('###')) {
+      return (
+        <h4 key={lineIdx} className="text-sm font-mono font-bold text-amber-400 mt-3 mb-1">
+          {parseBold(trimmed.replace(/^###\s*/, ''))}
+        </h4>
+      );
+    }
+    if (trimmed.startsWith('##')) {
+      return (
+        <h3 key={lineIdx} className="text-base font-serif font-bold text-amber-300 mt-4 mb-2">
+          {parseBold(trimmed.replace(/^##\s*/, ''))}
+        </h3>
+      );
+    }
+    if (trimmed.startsWith('#')) {
+      return (
+        <h2 key={lineIdx} className="text-lg font-serif font-bold text-amber-100 mt-4 mb-2 border-b border-amber-200/10 pb-1">
+          {parseBold(trimmed.replace(/^#\s*/, ''))}
+        </h2>
+      );
+    }
+
+    // Bullet points
+    if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
+      return (
+        <li key={lineIdx} className="ml-4 list-disc pl-1 text-[13.5px] leading-relaxed text-stone-300 mb-1 font-news">
+          {parseBold(trimmed.replace(/^[-*]\s*/, ''))}
+        </li>
+      );
+    }
+
+    // Regular paragraphs
+    return (
+      <p key={lineIdx} className="mb-2 leading-relaxed text-stone-300/90 font-news text-[14.5px]">
+        {parseBold(line)}
+      </p>
+    );
+  });
+}
+
 function cleanMessages(messages) {
   if (!Array.isArray(messages)) return [];
 
@@ -248,6 +306,14 @@ export default function App() {
   const handleDetailsSubmit = async (e) => {
     e.preventDefault();
     if (!name || !date || !time || !place) return;
+    
+    // Custom date validation
+    const today = new Date().toISOString().split('T')[0];
+    if (date > today) {
+      setErrorMessage("Birth date cannot be in the future.");
+      return;
+    }
+
     setLoading(true);
     setErrorMessage('');
     setToolLogs(["Resolving birth coordinates...", "Fetching ephemeris elements..."]);
@@ -349,15 +415,19 @@ export default function App() {
             try {
               const parsed = JSON.parse(dataStr);
               
-              // Event 1: LLM text response token chunk
+              // Event 1: LLM text response token chunk (append incrementally)
               if (parsed.text !== undefined) {
                 setMessages(prev => {
                   const updated = [...prev];
                   if (assistantMessageIndex === -1) {
-                    updated.push({ role: 'assistant', content: getMessageText(parsed.text) });
+                    updated.push({ role: 'assistant', content: parsed.text });
                     assistantMessageIndex = updated.length - 1;
                   } else {
-                    updated[assistantMessageIndex] = { role: 'assistant', content: getMessageText(parsed.text) };
+                    const prevContent = updated[assistantMessageIndex]?.content || "";
+                    updated[assistantMessageIndex] = { 
+                      role: 'assistant', 
+                      content: prevContent + parsed.text 
+                    };
                   }
                   return updated;
                 });
@@ -570,10 +640,7 @@ export default function App() {
                       ? 'bg-gradient-to-br from-amber-500/20 to-amber-300/10 border border-amber-400/20 text-stone-200 rounded-tr-none' 
                       : 'bg-white/[0.025] border border-amber-200/5 text-stone-300/90 rounded-tl-none font-news text-base leading-relaxed'
                   }`}>
-                    {/* Render message formatting - replace newlines with brs */}
-                    {getMessageText(msg.content).split('\n').map((line, idx) => (
-                      <p key={idx} className={line ? 'mb-2' : 'mb-4'}>{line}</p>
-                    ))}
+                    {renderMarkdown(msg.content)}
                   </div>
                 </div>
               ))
@@ -643,17 +710,15 @@ export default function App() {
             <form onSubmit={handleSendMessage} className="flex gap-2">
               <input
                 type="text"
-                disabled={!user || loading || cooldownSeconds > 0}
+                disabled={loading || cooldownSeconds > 0}
                 value={inputMessage}
                 onChange={e => setInputMessage(e.target.value)}
                 placeholder={
                   cooldownSeconds > 0 
                     ? `Reflecting on your chart... Please wait ${cooldownSeconds}s` 
-                    : !user 
-                      ? "Please complete birth mapping to activate chat..." 
-                      : loading 
-                        ? "AstroAgent is streaming cosmic insights..." 
-                        : "Ask AstroAgent (e.g. 'What is my Moon in Sign saying about my path?')..."
+                    : loading 
+                      ? "AstroAgent is streaming cosmic insights..." 
+                      : "Ask AstroAgent (e.g. 'What is my Moon in Sign saying?' or greetings)..."
                 }
                 className={`flex-grow bg-[#16152a] border rounded-xl px-4 py-3 text-sm focus:outline-none transition-all placeholder:text-stone-600 text-stone-200 ${
                   cooldownSeconds > 0 
@@ -663,7 +728,7 @@ export default function App() {
               />
               <button
                 type="submit"
-                disabled={!user || loading || cooldownSeconds > 0 || !inputMessage.trim()}
+                disabled={loading || cooldownSeconds > 0 || !inputMessage.trim()}
                 className={`rounded-xl px-5 py-3 font-bold font-mono tracking-wider transition-all ${
                   cooldownSeconds > 0
                     ? 'bg-amber-500/10 border border-amber-400/20 text-amber-300/40 opacity-50 cursor-not-allowed'

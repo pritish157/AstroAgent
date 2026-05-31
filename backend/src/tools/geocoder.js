@@ -92,7 +92,8 @@ async function geocodePlace(query) {
 
   let timezone = 'UTC';
   try {
-    const tzResponse = await fetch(`http://api.geonames.org/timezoneJSON?lat=${latitude}&lng=${longitude}&username=astroagent_demo`);
+    const geonamesUser = process.env.GEONAMES_USERNAME || 'astroagent_demo';
+    const tzResponse = await fetch(`http://api.geonames.org/timezoneJSON?lat=${latitude}&lng=${longitude}&username=${geonamesUser}`);
     
     if (tzResponse.ok) {
       const tzData = await tzResponse.json();
