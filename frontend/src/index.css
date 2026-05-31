@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply antialiased scroll-smooth;
+    background: radial-gradient(1200px 700px at 78% -8%, #2b2a55 0%, transparent 55%), 
+                radial-gradient(900px 600px at 10% 12%, #3a2742 0%, transparent 50%), 
+                linear-gradient(180deg, #11101f 0%, #0b0a14 100%);
+  }
+
+  ::selection {
+    @apply bg-amber-400/20 text-amber-200;
+  }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.85; }
+}
+
+@keyframes drift {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-twinkle-seeded {
+  animation: twinkle 5s ease-in-out infinite;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
