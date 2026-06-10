@@ -4,6 +4,8 @@
 
 The application uses **LangGraph.js** for stateful multi-turn reasoning on the backend, **MongoDB Atlas** for persistent conversation memory and geocoding caching, and a polished **React (Vite) + Tailwind CSS** frontend that renders planetary alignments inside an interactive circular SVG natal chart — with real-time **token-by-token SSE streaming**.
 
+✨ **Live Application URL:** [astro-agent-wheat.vercel.app](https://astro-agent-wheat.vercel.app)
+
 ---
 
 ## 🏗️ System Architecture & LangGraph Flow
