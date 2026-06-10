@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 
+// Configure dynamic backend API URL for production deployment (Vercel + Render)
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 // Deterministic starfield for celestial ambient background
 function Starfield() {
   const stars = useMemo(() => {
@@ -276,7 +279,7 @@ export default function App() {
     if (savedThread) {
       setThreadId(savedThread);
       // Fetch chat history
-      fetch(`/api/chat/history/${savedThread}`)
+      fetch(`${API_BASE}/api/chat/history/${savedThread}`)
         .then(res => res.ok ? res.json() : { messages: [] })
         .then(data => {
           setMessages(cleanMessages(data.messages));
@@ -320,7 +323,7 @@ export default function App() {
 
     try {
       // Step 1. Trigger backend geocode & birth chart calculations
-      const response = await fetch('/api/users/birth-details', {
+      const response = await fetch(`${API_BASE}/api/users/birth-details`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, date, time, place, system })
@@ -375,7 +378,7 @@ export default function App() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/chat/stream', {
+      const response = await fetch(`${API_BASE}/api/chat/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
