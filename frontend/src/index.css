@@ -4,29 +4,60 @@
 
 @layer base {
   body {
-    @apply antialiased scroll-smooth;
-    background: radial-gradient(1200px 700px at 78% -8%, #2b2a55 0%, transparent 55%), 
-                radial-gradient(900px 600px at 10% 12%, #3a2742 0%, transparent 50%), 
-                linear-gradient(180deg, #11101f 0%, #0b0a14 100%);
+    @apply antialiased scroll-smooth font-sans text-stone-300;
+    background: radial-gradient(1400px 800px at 75% -10%, #221f45 0%, transparent 60%), 
+                radial-gradient(1000px 700px at 15% 15%, #2a1636 0%, transparent 55%), 
+                linear-gradient(180deg, #080711 0%, #0d0c1b 100%);
+    background-attachment: fixed;
   }
 
   ::selection {
-    @apply bg-amber-400/20 text-amber-200;
+    @apply bg-amber-400/30 text-amber-100;
   }
 }
 
-@keyframes twinkle {
-  0%, 100% { opacity: 0.15; }
-  50% { opacity: 0.85; }
+/* Glassmorphic border utilities */
+.glass-panel {
+  background: rgba(21, 20, 42, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(240, 185, 91, 0.14);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35);
 }
 
-@keyframes drift {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.glass-panel-gold {
+  background: linear-gradient(135deg, rgba(240, 185, 91, 0.08) 0%, rgba(157, 78, 221, 0.04) 100%);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(240, 185, 91, 0.25);
+  box-shadow: 0 0 20px -5px rgba(240, 185, 91, 0.15);
 }
 
-.animate-twinkle-seeded {
-  animation: twinkle 5s ease-in-out infinite;
+.glass-card-interactive {
+  @apply transition-all duration-300 transform hover:-translate-y-0.5;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(240, 185, 91, 0.12);
+}
+
+.glass-card-interactive:hover {
+  background: rgba(240, 185, 91, 0.06);
+  border-color: rgba(240, 185, 91, 0.35);
+  box-shadow: 0 0 20px -3px rgba(240, 185, 91, 0.2);
+}
+
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(13, 12, 27, 0.6);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(240, 185, 91, 0.2);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(240, 185, 91, 0.4);
 }
 
 .scrollbar-none::-webkit-scrollbar {

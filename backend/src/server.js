@@ -1,6 +1,6 @@
 const app = require('./app');
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5005;
 
 /**
  * server.js: Entry point script responsible solely for starting the HTTP port

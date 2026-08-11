@@ -203,11 +203,11 @@ function buildSystemPrompt(state) {
   } else if (intent === 'placement_analysis') {
     intentInstruction = `\n- Astrological Placement Query: The user is asking about placements. You MUST call the 'knowledge_lookup' tool with a query mapping to their planet/sign/house (e.g., 'Moon in Capricorn' or 'Saturn in 10th house') to retrieve grounded reference information before answering. Explain the placement with warmth.`;
   } else if (intent === 'transit_analysis') {
-    intentInstruction = `\n- Daily Transits Query: The user wants transit information. You MUST call the 'get_daily_transits' tool with the date they asked about (formatted as YYYY-MM-DD) to fetch planetary transit positions before answering.`;
+    intentInstruction = `\n- Daily Transits Query: The user wants transit information. You MUST call the 'get_daily_transits' tool with the date mentioned or today's date (formatted as YYYY-MM-DD) to fetch planetary transit positions before answering.`;
   } else if (intent === 'chart_calculation') {
     intentInstruction = `\n- Chart Calculation Query: The user wants their birth chart calculated. If they provided birth details (date, time, place), you must call 'geocode_place' first to resolve the location, and then call 'compute_birth_chart' with the geocoded coordinates. If birth details are missing or incomplete, ask for them with warm guidance.`;
   } else if (intent === 'general_astrology') {
-    intentInstruction = `\n- General Astrology Query: Answer their question with warm spiritual wisdom. If they ask about general meanings of houses, signs, etc., you can call 'knowledge_lookup' to get reference data first.`;
+    intentInstruction = `\n- General Astrology Query: You MUST call the 'knowledge_lookup' tool with a relevant search query (e.g. '12th house', 'Rahu and Ketu', '4th house', 'Mercury retrograde') to retrieve grounded reference information before answering. Explain with warm spiritual wisdom.`;
   }
 
   return `You are AstroAgent, a warm spiritual astrology companion for ${userName}.${systemInstructions}${intentInstruction}

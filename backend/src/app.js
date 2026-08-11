@@ -14,8 +14,17 @@ const app = express();
 // 1. Connect to MongoDB
 connectDB();
 
-// 2. Configure Global Middlewares
-app.use(cors());
+// 2. Configure Global Middlewares & Comprehensive CORS Setup
+const corsOptions = {
+  origin: true, // Reflect request origin to support localhost (3000, 5173, 5000) and production deployments
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Cache-Control'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 
 // 3. Mount API Routers (MVC routing layer)
