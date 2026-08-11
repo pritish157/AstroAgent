@@ -31,9 +31,19 @@ app.use(express.json());
 app.use('/api/users', userRoutes);
 app.use('/api/chat', chatRoutes);
 
-// General health check endpoint
+// General health check & Render keep-alive endpoints
 app.get('/api/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date() });
+});
+
+// Render keep-alive / ping route (hit every 5 mins by external cron or self-ping to prevent free-tier sleeping)
+app.get(['/api/ping', '/ping'], (req, res) => {
+  res.status(200).json({
+    status: 'active',
+    message: 'AstroAgent backend is awake and active',
+    timestamp: new Date().toISOString(),
+    uptimeSeconds: Math.floor(process.uptime())
+  });
 });
 
 module.exports = app;
